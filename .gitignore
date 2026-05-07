@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.venv/
+venv/
+.env
+
+# Streamlit
+.streamlit/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local data
+*.geojson
+*.gpkg
+*.tif
+*.tiff
+*.png
+*.jpg
+*.jpeg
+
+# Build
+build/
+dist/
+*.egg-info/
+
+
+# Idea
+.idea/
+docs/
+
