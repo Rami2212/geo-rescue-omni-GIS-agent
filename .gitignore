@@ -8,7 +8,9 @@ venv/
 .env
 
 # Streamlit
-.streamlit/
+.streamlit/*
+!.streamlit/
+!.streamlit/secrets.toml.example
 
 # Editor/OS
 .vscode/
@@ -37,4 +39,4 @@ dist/
 # Idea
 .idea/
 docs/
-
+cache/
