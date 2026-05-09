@@ -1,0 +1,71 @@
+# ─── GeoRescue — Omni GIS Agent ─────────────────────────────────────────────
+
+# Secrets & local config — never commit
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Large ML model files — download separately, do not commit
+*.safetensors
+*.pt
+*.bin
+*.ckpt
+*.pth
+*.h5
+*.pkl
+
+# Runtime-generated GIS output (not training data)
+ml_serving/data/processed/blocked_roads_flood.geojson
+ml_serving/data/processed/latest_route.geojson
+ml_serving/data/processed/latest_status.json
+ml_serving/data/processed/live_flood_polygon.geojson
+
+# Large satellite images — store locally, do not commit
+ml_serving/data/raw/*.png
+
+# OSMnx binary graph cache
+ml_serving/data/processed/*.graphml
+cache/
+*.graphml
+
+# Streamlit cache
+.streamlit/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml

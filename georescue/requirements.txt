@@ -1,0 +1,35 @@
+# ─── GeoRescue Omni GIS Agent — Python dependencies ────────────────────────
+# Install: pip install -r requirements.txt
+# Tested on Python 3.11 / 3.12
+
+# ── AI / Agent framework ─────────────────────────────────────────────────────
+crewai>=0.63.0                # Multi-agent orchestration
+crewai-tools>=0.12.0          # CrewAI tool utilities (BaseTool, @tool)
+
+# ── LLM / LiteLLM (used by CrewAI internally) ───────────────────────────────
+litellm>=1.44.0               # Unified LLM client (Ollama, OpenAI, etc.)
+
+# ── HTTP client ──────────────────────────────────────────────────────────────
+requests>=2.31.0
+urllib3>=2.0.0
+
+# ── Configuration ────────────────────────────────────────────────────────────
+pydantic>=2.7.0
+pydantic-settings>=2.3.0      # Env-file based settings
+python-dotenv>=1.0.0
+
+# ── GIS & Spatial ────────────────────────────────────────────────────────────
+osmnx>=1.9.0                  # OpenStreetMap road network download
+networkx>=3.2                 # Graph routing (shortest-path)
+shapely>=2.0.0                # Geometric operations
+geopandas>=0.14.0             # Spatial DataFrames
+pyproj>=3.6.0                 # CRS transformations
+
+# ── UI / Visualisation ───────────────────────────────────────────────────────
+streamlit>=1.35.0             # Requires st.status() — added in 1.28
+folium>=0.16.0
+streamlit-folium>=0.20.0
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+numpy>=1.26.0
+pandas>=2.1.0
