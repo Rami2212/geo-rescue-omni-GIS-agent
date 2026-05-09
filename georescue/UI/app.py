@@ -47,7 +47,7 @@ st.caption("Disaster routing and GIS safety planning for Colombo")
 
 def sync_orchestrator_data(base_url: str) -> None:
     if not base_url:
-        st.warning("Orchestrator URL is not configured.")
+        st.warning("GIS API URL is not configured.")
         return
 
     cycle, cycle_error = run_gis_cycle(base_url)
@@ -80,14 +80,14 @@ with st.sidebar:
 
     orchestrator_url = get_orchestrator_url()
     orchestrator_url = st.text_input(
-        "Orchestrator API URL (optional)",
+        "GIS API URL (optional)",
         value=orchestrator_url,
-        placeholder="http://localhost:8000",
-        help="Set ORCHESTRATOR_URL in secrets or environment for production.",
+        placeholder="http://localhost:9000",
+        help="Set GIS_API_URL in secrets or environment for production.",
     )
 
     if not orchestrator_url:
-        st.warning("Orchestrator URL is not configured. Running in mock mode.")
+        st.warning("GIS API URL is not configured. Running in mock mode.")
 
     use_orchestrator = st.checkbox(
         "Use orchestrator data", value=bool(orchestrator_url)
@@ -142,7 +142,7 @@ with left_col:
     analyze_clicked = st.button("Analyze Image")
     if analyze_clicked:
         if not orchestrator_url:
-            st.warning("Set an orchestrator URL to run image analysis.")
+            st.warning("Set a GIS API URL to run image analysis.")
         else:
             analysis, analysis_error = analyze_image(
                 orchestrator_url, uploaded_image, disaster_type
