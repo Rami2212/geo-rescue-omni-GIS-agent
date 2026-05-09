@@ -85,3 +85,45 @@ def render_road_network(base_map: folium.Map, graph: nx.MultiDiGraph) -> None:
         style_function=lambda _: {"color": "#6c7a89", "weight": 1, "opacity": 0.6},
     ).add_to(base_map)
 
+
+def render_geojson_layer(
+    base_map: folium.Map,
+    geojson: Optional[dict],
+    name: str,
+    style: dict,
+) -> None:
+    if not geojson:
+        return
+
+    folium.GeoJson(
+        geojson,
+        name=name,
+        style_function=lambda _: style,
+    ).add_to(base_map)
+
+
+def render_flood_layer(base_map: folium.Map, geojson: Optional[dict], show: bool) -> None:
+    if not show:
+        return
+    render_geojson_layer(
+        base_map,
+        geojson,
+        "Flood Zone",
+        {
+            "fillColor": "#ff6b6b",
+            "color": "#ff6b6b",
+            "weight": 2,
+            "fillOpacity": 0.35,
+        },
+    )
+
+
+def render_blocked_roads(base_map: folium.Map, geojson: Optional[dict], show: bool) -> None:
+    if not show:
+        return
+    render_geojson_layer(
+        base_map,
+        geojson,
+        "Blocked Roads",
+        {"color": "#ff9f1a", "weight": 3, "opacity": 0.85},
+    )

@@ -22,4 +22,13 @@ def initialize_session_state() -> None:
         st.session_state.dest_lon = DEFAULT_CENTER_LON + 0.015
     if "last_click" not in st.session_state:
         st.session_state.last_click = None
-
+    if "blocked_roads_geojson" not in st.session_state:
+        st.session_state.blocked_roads_geojson = None
+    if "flood_geojson" not in st.session_state:
+        st.session_state.flood_geojson = None
+    if "orchestrator_status" not in st.session_state:
+        st.session_state.orchestrator_status = None
+    if "orchestrator_error" not in st.session_state:
+        st.session_state.orchestrator_error = None
+    if "last_analysis" not in st.session_state:
+        st.session_state.last_analysis = None

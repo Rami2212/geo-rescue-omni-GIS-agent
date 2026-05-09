@@ -4,9 +4,10 @@
 This Streamlit UI is the Member 4 deliverable from the hackathon plan. It provides a command console, a live status feed for agent progress, and a Folium-powered operational map for damage zones and safe routes.
 
 ## Key Features
-- Mission request input (text and optional imagery upload placeholder)
-- Status feed that mirrors the multi-agent pipeline phases
-- Folium map layers for damage polygons and safe routes
+- Mission request input (text and optional imagery upload)
+- Live orchestrator integration for flood polygons, blocked roads, and safe routes
+- AI image analysis via `/analyze-image` (when orchestrator is configured)
+- Folium map layers for damage polygons, flood zones, blocked roads, and safe routes
 - Sidebar controls for map visibility and configuration
 
 ## Run Locally
@@ -23,8 +24,14 @@ python -m streamlit run app.py
 - `docs/step-by-step-guide.md`: Full setup and usage guide
 
 ## Backend Integration
-The UI currently uses mock GeoJSON outputs. When the orchestrator is ready, wire the API calls in `app.py` and replace the mock data with live responses.
+- Set `ORCHESTRATOR_URL` as an environment variable or Streamlit secret.
+- The UI can pull live data from:
+  - `POST /gis/run-cycle`
+  - `GET /gis/flood-polygon`
+  - `GET /gis/blocked-roads`
+  - `GET /gis/safe-route`
+  - `POST /analyze-image`
+- If the orchestrator is not configured, the UI falls back to local routing and sample data.
 
 ## Deployment Note
 Hugging Face Spaces works out-of-the-box with `app.py` as the entry file. Add `ORCHESTRATOR_URL` as a Space secret if the backend is remote.
-
