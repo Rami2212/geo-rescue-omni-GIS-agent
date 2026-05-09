@@ -100,8 +100,12 @@ def train(
     n_train = len(full_dataset) - n_eval
     train_set, eval_set = torch.utils.data.random_split(full_dataset, [n_train, n_eval])
 
+    output_dir = Path(output_dir)
+    # Epoch checkpoints go to a sibling dir so output_dir stays clean for the adapter.
+    checkpoint_dir = output_dir.with_name(output_dir.name + "_checkpoints")
+
     args = TrainingArguments(
-        output_dir=str(output_dir),
+        output_dir=str(checkpoint_dir),
         num_train_epochs=num_epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
@@ -128,7 +132,7 @@ def train(
 
     trainer.train(resume_from_checkpoint=resume_from)
 
-    final_path = Path(output_dir) / "final"
-    trainer.save_model(str(final_path))
-    processor.save_pretrained(str(final_path))
-    print(f"Fine-tuned model saved to {final_path}")
+    # Save final adapter directly to output_dir — this is where model_loader.py loads from.
+    trainer.save_model(str(output_dir))
+    processor.save_pretrained(str(output_dir))
+    print(f"Fine-tuned adapter saved to {output_dir}")

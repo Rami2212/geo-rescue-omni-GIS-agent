@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(mkdir -p \"e:/Zynaptrix/geo-rescue-omni-GIS-agent/georescue-omni-agent/agents\")",
-      "Bash(mkdir -p \"e:/Zynaptrix/geo-rescue-omni-GIS-agent/georescue-omni-agent/georescue\")"
+      "Bash(mkdir -p \"e:/Zynaptrix/geo-rescue-omni-GIS-agent/georescue-omni-agent/georescue\")",
+      "PowerShell(Get-ChildItem -Path \"E:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\data\\\\\" -Recurse -Force | Select-Object FullName, @{N='Type';E={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}} | Sort-Object FullName | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"E:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\georescue\\\\ml_serving\\\\training\\\\\" -Recurse -Force | Select-Object FullName, @{N='Type';E={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}} | Sort-Object FullName | Format-Table -AutoSize)",
+      "PowerShell($json = Get-Content \"E:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\data\\\\training_data_upload\\\\training_data\\\\dataset_index.json\" | ConvertFrom-Json; Write-Host \"Total samples: $\\($json.Count\\)\")",
+      "Bash(robocopy \"e:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\data\\\\training_data_upload\\\\training_data\\\\processed\" \"e:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\georescue\\\\ml_serving\\\\data\\\\processed\" /E /NP /NJH /NJS)",
+      "PowerShell(robocopy \"e:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\data\\\\training_data_upload\\\\training_data\\\\processed\" \"e:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\georescue\\\\ml_serving\\\\data\\\\processed\" /E /NP /NJH /NJS; \"Exit: $LASTEXITCODE\")",
+      "Bash(Get-ChildItem -Path \"e:/Zynaptrix/geo-rescue-omni-GIS-agent/georescue/ml_serving\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Get-ChildItem -Path \"e:\\\\Zynaptrix\\\\geo-rescue-omni-GIS-agent\\\\georescue\\\\ml_serving\\\\qwen_vl\" -Recurse -File)"
     ]
   }
 }

@@ -9,8 +9,9 @@ from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 
 MODEL_NAME = "Qwen/Qwen2-VL-7B-Instruct"
 
-# Adapter lives at <repo_root>/final3; override with ADAPTER_PATH env var.
-_DEFAULT_ADAPTER = Path(__file__).resolve().parents[2] / "final3"
+# Adapter lives at ml_serving/final3; override with ADAPTER_PATH env var.
+# parents[0]=qwen_vl/, parents[1]=ml_serving/
+_DEFAULT_ADAPTER = Path(__file__).resolve().parents[1] / "final3"
 ADAPTER_PATH = Path(os.getenv("ADAPTER_PATH", str(_DEFAULT_ADAPTER)))
 
 _model = None
@@ -29,16 +30,22 @@ def load_model():
             device_map="auto",
         )
 
-        if ADAPTER_PATH.exists():
+        _has_weights = ADAPTER_PATH.exists() and (
+            any(ADAPTER_PATH.glob("adapter_model*.safetensors"))
+            or any(ADAPTER_PATH.glob("adapter_model*.bin"))
+        )
+        if _has_weights:
             print(f"[GeoRescue] Applying LoRA adapter from {ADAPTER_PATH}...")
             _model = PeftModel.from_pretrained(base, str(ADAPTER_PATH))
             _model = _model.merge_and_unload()  # fuse weights for faster inference
         else:
-            print(f"[GeoRescue] Adapter not found at {ADAPTER_PATH}, using base model.")
+            print(f"[GeoRescue] Adapter weights not found at {ADAPTER_PATH}, using base model.")
             _model = base
 
-        # Load processor from adapter dir so custom tokenizer/chat_template is used.
-        processor_source = str(ADAPTER_PATH) if ADAPTER_PATH.exists() else MODEL_NAME
+        # Load processor/tokenizer from adapter dir if it has a custom tokenizer,
+        # otherwise fall back to the base model processor.
+        _has_tokenizer = ADAPTER_PATH.exists() and (ADAPTER_PATH / "tokenizer.json").exists()
+        processor_source = str(ADAPTER_PATH) if _has_tokenizer else MODEL_NAME
         _processor = AutoProcessor.from_pretrained(processor_source)
 
         print(f"[GeoRescue] Model ready on {_model.device}")

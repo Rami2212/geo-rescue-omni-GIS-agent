@@ -28,13 +28,16 @@ async def analyze(
 
     image_bytes = await file.read()
     ai_output = analyze_image(image_bytes, disaster_type)
-    geojson_data = parse_zones_to_geojson(ai_output, metadata={"disaster_type": disaster_type})
+    geojson_data, severity, findings = parse_zones_to_geojson(
+        ai_output, metadata={"disaster_type": disaster_type}
+    )
 
     elapsed = (time.time() - start) * 1000
 
     return AnalysisResponse(
         status="success",
-        findings=ai_output,
+        severity=severity,
+        findings=findings or ai_output,
         geojson=geojson_data,
         inference_time_ms=round(elapsed, 2),
     )

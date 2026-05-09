@@ -2,7 +2,7 @@
 # Convenience targets for development and deployment.
 # Usage: make <target>
 
-.PHONY: help install install-ml env api app all lint clean
+.PHONY: help install install-ml env api app all train enrich lint clean
 
 PYTHON   := python
 PIP      := $(PYTHON) -m pip
@@ -20,6 +20,8 @@ help:
 	@echo "  make app         Start the Streamlit UI (port 8501)"
 	@echo "  make all         Start both API and app in parallel"
 	@echo "  make lint        Run ruff linter on all Python files"
+	@echo "  make enrich      Generate training labels from GIS sample data"
+	@echo "  make train       Fine-tune Qwen2-VL-7B with LoRA on collected data"
 	@echo "  make clean       Remove __pycache__ and .pyc files"
 	@echo ""
 
@@ -52,6 +54,24 @@ app:
 all:
 	@echo "Starting both services (Ctrl+C to stop)..."
 	@$(MAKE) api & $(MAKE) app; wait
+
+# ── Training ─────────────────────────────────────────────────────────────────
+
+DATASET_INDEX := data/dataset_index.json
+TRAIN_OUTPUT  := final3
+
+enrich:
+	@echo "Enriching training labels from GIS samples..."
+	cd ml_serving && $(PYTHON) training/run_training.py enrich --dataset-index $(DATASET_INDEX)
+
+train:
+	@echo "Fine-tuning Qwen2-VL-7B with LoRA (AMD MI300X / ROCm required)..."
+	cd ml_serving && $(PYTHON) training/run_training.py train \
+		--dataset-index $(DATASET_INDEX) \
+		--output-dir $(TRAIN_OUTPUT) \
+		--epochs 3 \
+		--batch-size 2 \
+		--enrich-labels
 
 # ── Code quality ─────────────────────────────────────────────────────────────
 

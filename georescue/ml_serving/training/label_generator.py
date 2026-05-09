@@ -29,7 +29,7 @@ def geojson_to_zone_coordinates(geojson_path: "str | Path") -> "list[list[list[f
     return zones
 
 
-def build_training_label(sample: dict) -> dict:
+def build_training_label(sample: dict, base_dir: "Path | None" = None) -> dict:
     label = {
         "severity": SEVERITY_MAP.get(sample.get("severity", "low"), "low"),
         "findings": (
@@ -42,8 +42,12 @@ def build_training_label(sample: dict) -> dict:
     }
 
     flood_path = sample.get("flood_polygon_path")
-    if flood_path and Path(flood_path).exists():
-        label["affected_zones"] = geojson_to_zone_coordinates(flood_path)
+    if flood_path:
+        resolved = Path(flood_path)
+        if not resolved.is_absolute() and base_dir:
+            resolved = base_dir / resolved
+        if resolved.exists():
+            label["affected_zones"] = geojson_to_zone_coordinates(resolved)
 
     return label
 
@@ -51,10 +55,11 @@ def build_training_label(sample: dict) -> dict:
 def enrich_dataset_labels(dataset_index: "str | Path") -> None:
     """Load dataset_index.json, add training_label field to each sample, and re-save."""
     index_path = Path(dataset_index)
+    base_dir = index_path.parent
     samples = json.loads(index_path.read_text())
 
     for sample in samples:
-        sample["training_label"] = build_training_label(sample)
+        sample["training_label"] = build_training_label(sample, base_dir=base_dir)
 
     index_path.write_text(json.dumps(samples, indent=2))
     print(f"Enriched {len(samples)} samples with training labels → {index_path}")

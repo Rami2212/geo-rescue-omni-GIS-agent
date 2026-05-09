@@ -34,16 +34,22 @@ ENV/
 *.h5
 *.pkl
 
-# Generated GIS data — created at runtime by the pipeline
-ml_serving/data/processed/
-ml_serving/data/raw/
+# Runtime-generated GIS output (not training data)
+ml_serving/data/processed/blocked_roads_flood.geojson
+ml_serving/data/processed/latest_route.geojson
+ml_serving/data/processed/latest_status.json
+ml_serving/data/processed/live_flood_polygon.geojson
+
+# Large satellite images — store locally, do not commit
+ml_serving/data/raw/*.png
+
+# OSMnx binary graph cache
+ml_serving/data/processed/*.graphml
+cache/
+*.graphml
 
 # Streamlit cache
 .streamlit/
-
-# OSMnx / GeoPandas cache
-cache/
-*.graphml
 
 # Jupyter
 .ipynb_checkpoints/
