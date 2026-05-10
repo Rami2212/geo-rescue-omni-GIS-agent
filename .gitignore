@@ -1,43 +1,7 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyd
-*.so
-.venv/
-venv/
 .env
-
-# Streamlit
-.streamlit/*
-!.streamlit/
-!.streamlit/secrets.toml.example
-
-# Editor/OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Local data
 data
-*.geojson
-*.gpkg
-*.tif
-*.tiff
-*.png
-*.jpg
-*.jpeg
-
-# Build
-build/
-dist/
-*.egg-info/
-
-
-# Idea
-.idea/
-docs/
-cache/
+.claude
+dist
+node_modules
+coverage
+*.log

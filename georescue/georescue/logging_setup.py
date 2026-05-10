@@ -12,4 +12,8 @@ def setup_logging(name: str = "georescue") -> logging.Logger:
         format="[%(asctime)s] [%(levelname)s] %(name)s — %(message)s",
         datefmt="%H:%M:%S",
     )
+    # Suppress urllib3 retry noise — agents.tools already logs the final
+    # "API unreachable" warning, so these intermediate retry lines add no value.
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
+
     return logging.getLogger(name)

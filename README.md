@@ -9,7 +9,7 @@ live flood intelligence, and autonomous agent reasoning in the hands of first re
 
 ---
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.11--3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![AMD MI300X](https://img.shields.io/badge/AMD-Instinct%20MI300X-ED1C24?style=for-the-badge&logo=amd&logoColor=white)](https://www.amd.com/en/products/accelerators/instinct/mi300.html)
 [![ROCm](https://img.shields.io/badge/ROCm-6.x-ED1C24?style=for-the-badge&logo=amd&logoColor=white)](https://rocm.docs.amd.com)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent-FF6B35?style=for-the-badge)](https://crewai.com)
@@ -119,31 +119,47 @@ geo-rescue-omni-GIS-agent/
 
 ## ⚡ Quick Start
 
+> **Python 3.11–3.13 required** — `crewai` does not yet support Python 3.14.
+
 ```bash
-# 1. Install Ollama and pull the model
-#    https://ollama.com/download
-ollama pull llama3.2
+# 1. Clone and enter the project
+git clone <repo-url>
+cd geo-rescue-omni-GIS-agent/georescue
 
-# 2. Enter the project
-cd georescue
+# 2. Create a virtual environment (use Python 3.11–3.13)
+#    Windows:        py -3.13 -m venv .venv && .\.venv\Scripts\activate
+#    macOS / Linux:  python3.13 -m venv .venv && source .venv/bin/activate
 
-# 3. Configure
-cp .env.example .env
-
-# 4. Install core dependencies  (no GPU needed)
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 5. Start the GIS + Vision API  (Terminal 1)
-cd ml_serving && uvicorn api.app:app --host 0.0.0.0 --port 9000
+# 4. Configure — fill in SENTINEL_CLIENT_ID and SENTINEL_CLIENT_SECRET
+cp .env.example .env
 
-# 6. Start the Streamlit UI  (Terminal 2)
+# 5. Install Ollama  →  https://ollama.com/download
+#    Windows:  winget install Ollama.Ollama
+ollama pull llama3.2        # ~2 GB
+
+# 6. Start Ollama server (Terminal 1)
+ollama serve
+
+# 7. Start Streamlit UI (Terminal 2)
 streamlit run app.py
 ```
 
 Open **http://localhost:8501**
 
-> The app works offline too — it falls back to local OSMnx routing and a template  
-> report when the API server or Ollama is unavailable.
+**Optional — GPU Vision API** (requires AMD ROCm or CUDA):
+```bash
+# Terminal 3
+cd ml_serving
+pip install -r requirements.txt
+uvicorn api.app:app --host 0.0.0.0 --port 9000
+```
+
+> The app always works without the Vision API — it falls back to local OSMnx routing  
+> and a template report when the API server or Ollama is unavailable.  
+> See **[georescue/README.md](georescue/README.md)** for full documentation.
 
 ---
 

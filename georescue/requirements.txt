@@ -24,6 +24,7 @@ networkx>=3.2                 # Graph routing (shortest-path)
 shapely>=2.0.0                # Geometric operations
 geopandas>=0.14.0             # Spatial DataFrames
 pyproj>=3.6.0                 # CRS transformations
+scikit-learn>=1.4.0           # Required by osmnx nearest_nodes on unprojected graphs
 
 # ── UI / Visualisation ───────────────────────────────────────────────────────
 #streamlit>=1.35.0             # Requires st.status() — added in 1.28

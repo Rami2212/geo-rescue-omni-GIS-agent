@@ -42,34 +42,42 @@ def _api_url() -> str:
 
 def _get(path: str, timeout: int = 15) -> dict:
     url = f"{_api_url()}{path}"
+    logger.debug("GET %s (timeout=%ds)", url, timeout)
     try:
         resp = _session().get(url, timeout=timeout)
         resp.raise_for_status()
+        logger.debug("GET %s -> %d", url, resp.status_code)
         return resp.json()
     except requests.exceptions.ConnectionError:
         logger.warning("API unreachable: %s", url)
         return {"error": "API server not reachable. Check GIS_API_URL and ensure the server is running.", "url": url}
     except requests.exceptions.Timeout:
-        logger.warning("API timeout: %s", url)
+        logger.warning("API timeout after %ds: %s", timeout, url)
         return {"error": f"Request timed out after {timeout}s", "url": url}
     except requests.exceptions.HTTPError as exc:
+        logger.error("HTTP %d from %s: %s", exc.response.status_code, url, exc.response.text[:200])
         return {"error": f"HTTP {exc.response.status_code}: {exc.response.text[:200]}"}
     except Exception as exc:
-        logger.exception("Unexpected API error")
+        logger.exception("Unexpected API error for GET %s", url)
         return {"error": str(exc)}
 
 
 def _post(path: str, timeout: int = 120, **kwargs) -> dict:
     url = f"{_api_url()}{path}"
+    logger.debug("POST %s (timeout=%ds)", url, timeout)
     try:
         resp = _session().post(url, timeout=timeout, **kwargs)
         resp.raise_for_status()
+        logger.debug("POST %s -> %d", url, resp.status_code)
         return resp.json()
     except requests.exceptions.ConnectionError:
+        logger.warning("API unreachable: %s", url)
         return {"error": "API server not reachable. Check GIS_API_URL.", "url": url}
     except requests.exceptions.Timeout:
+        logger.warning("POST %s timed out after %ds", url, timeout)
         return {"error": f"Request timed out after {timeout}s. The GIS cycle may still be running."}
     except Exception as exc:
+        logger.exception("Unexpected API error for POST %s", url)
         return {"error": str(exc)}
 
 
@@ -149,8 +157,10 @@ def get_blocked_roads() -> str:
     Use this to tell first responders which specific roads are impassable.
     Requires a prior call to 'Trigger Live Flood Analysis Cycle'.
     """
+    logger.info("Fetching blocked roads from GIS API...")
     result = _get("/gis/blocked-roads")
     if "error" in result:
+        logger.warning("Blocked roads fetch failed: %s", result["error"])
         return json.dumps(result)
     features = result.get("features", [])
     total_length = 0.0
@@ -167,6 +177,10 @@ def get_blocked_roads() -> str:
                 "impact_level": props.get("impact_level", "blocked"),
             }
         )
+    logger.info(
+        "Blocked roads: total=%d  affected_length=%.0f m  (showing top %d)",
+        len(features), total_length, len(roads),
+    )
     return json.dumps(
         {
             "total_blocked_roads": len(features),
@@ -185,8 +199,10 @@ def get_safe_route() -> str:
     The route is computed using NetworkX shortest-path on the OSMnx drive graph.
     Requires a prior call to 'Trigger Live Flood Analysis Cycle'.
     """
+    logger.info("Fetching safe evacuation route from GIS API...")
     result = _get("/gis/safe-route")
     if "error" in result:
+        logger.warning("Safe route fetch failed: %s", result["error"])
         return json.dumps(result)
     features = result.get("features", [])
     total_length = sum(f.get("properties", {}).get("length_m", 0) for f in features)
@@ -196,6 +212,10 @@ def get_safe_route() -> str:
             for f in features
             if f.get("properties", {}).get("street_name")
         }
+    )
+    logger.info(
+        "Safe route: length=%.2f km  segments=%d  streets=%s",
+        total_length / 1000 if total_length else 0, len(features), streets[:4],
     )
     return json.dumps(
         {
@@ -215,7 +235,11 @@ def analyze_satellite_image(image_bytes: bytes, disaster_type: str = "flood") ->
     because image bytes can't be passed as a string argument.
     """
     url = f"{_api_url()}/analyze-image"
+    size_kb = round(len(image_bytes) / 1024, 1)
+    logger.info("Image upload: size=%s KB  disaster_type=%s  endpoint=%s", size_kb, disaster_type, url)
+
     try:
+        logger.info("Sending image to Qwen2-VL vision model...")
         resp = _session().post(
             url,
             files={"file": ("satellite.jpg", image_bytes, "image/jpeg")},
@@ -223,12 +247,24 @@ def analyze_satellite_image(image_bytes: bytes, disaster_type: str = "flood") ->
             timeout=180,
         )
         resp.raise_for_status()
-        return resp.json()
+        result = resp.json()
+        logger.info(
+            "Vision analysis complete: severity=%s  inference_ms=%s",
+            result.get("severity", "unknown"),
+            result.get("inference_time_ms", "?"),
+        )
+        return result
     except requests.exceptions.ConnectionError:
+        logger.warning("Vision API not reachable at %s — Qwen-VL analysis skipped.", url)
         return {"error": "Vision API not reachable. Qwen-VL analysis skipped."}
     except requests.exceptions.Timeout:
+        logger.warning("Vision inference timed out (>180s) for %s KB image.", size_kb)
         return {"error": "Vision inference timed out (>180s). Image may be too large."}
+    except requests.exceptions.HTTPError as exc:
+        logger.error("Vision API HTTP error %s: %s", exc.response.status_code, exc.response.text[:200])
+        return {"error": f"HTTP {exc.response.status_code}: {exc.response.text[:200]}"}
     except Exception as exc:
+        logger.exception("Unexpected error during image upload")
         return {"error": str(exc)}
 
 

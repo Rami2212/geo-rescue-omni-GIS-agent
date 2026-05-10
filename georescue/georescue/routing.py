@@ -117,7 +117,13 @@ def calculate_safe_route(
     working_graph = graph
     blocked_edges = 0
 
+    logger.info(
+        "Route request: start=%s -> dest=%s  hazard_polygons=%d",
+        start, dest, len(hazard_polygons) if hazard_polygons else 0,
+    )
+
     if hazard_polygons:
+        logger.info("Applying %d hazard polygon(s) to road graph...", len(hazard_polygons))
         edges_gdf = ox.graph_to_gdfs(
             graph, nodes=False, edges=True, fill_edge_geometry=True
         )
@@ -127,20 +133,27 @@ def calculate_safe_route(
         if blocked_edges:
             working_graph = graph.copy()
             working_graph.remove_edges_from(blocked.index)
-            logger.info("Removed %d edges inside hazard zone", blocked_edges)
+            logger.info("Removed %d blocked edges inside hazard zone", blocked_edges)
+        else:
+            logger.info("No road edges intersect the hazard zone")
 
     try:
         start_node = ox.distance.nearest_nodes(working_graph, start[1], start[0])
         dest_node = ox.distance.nearest_nodes(working_graph, dest[1], dest[0])
+        logger.debug("Nearest nodes: start=%d  dest=%d", start_node, dest_node)
     except Exception as exc:
         logger.error("nearest_nodes failed: %s", exc)
         return None, None, {}, "Could not locate nearby roads for the selected points."
 
     try:
+        logger.info("Running NetworkX shortest_path (weight=length)...")
         route_nodes = nx.shortest_path(working_graph, start_node, dest_node, weight="length")
+        logger.info("Path found: %d nodes", len(route_nodes))
     except nx.NetworkXNoPath:
+        logger.warning("No path between nodes %d and %d — all routes may be blocked", start_node, dest_node)
         return None, None, {}, "No safe route found — all paths may be blocked."
     except nx.NodeNotFound as exc:
+        logger.error("Node not found during routing: %s", exc)
         return None, None, {}, f"Routing node error: {exc}"
     except Exception as exc:
         logger.error("Routing error: %s", exc)
@@ -148,6 +161,7 @@ def calculate_safe_route(
 
     route_gdf = _route_to_gdf(working_graph, route_nodes)
     if route_gdf.empty:
+        logger.warning("route_to_gdf returned empty GeoDataFrame")
         return None, None, {}, "Route calculation returned no segments."
 
     merged = linemerge(route_gdf.geometry.unary_union)
@@ -168,6 +182,12 @@ def calculate_safe_route(
         "blocked_edges": blocked_edges,
         "route_segments": len(route_nodes) - 1,
     }
+
+    logger.info(
+        "Route computed: %.2f km  %s min  %d segments  %d blocked edges",
+        stats["distance_km"], stats["travel_time_min"],
+        stats["route_segments"], stats["blocked_edges"],
+    )
 
     route_geojson = {
         "type": "FeatureCollection",
