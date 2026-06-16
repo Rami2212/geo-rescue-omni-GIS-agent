@@ -44,11 +44,11 @@ SAMPLE_DAMAGE_GEOJSON = {
 }
 
 STATUS_TEMPLATE = [
-    "Supervisor: parsing intent",
-    "Data Agent: fetching imagery",
-    "Vision Agent: extracting damage polygon",
-    "Spatial Agent: computing safe route",
-    "Reporting Agent: preparing GeoJSON",
+    "Supervisor (HF Llama 3B): planning mission",
+    "Image Scout: loading realtime image",
+    "Vision Agent (HF Qwen2.5-VL + local LoRA): extracting flooded polygons",
+    "Route Agent: computing safe + alternative routes",
+    "Supervisor: final operational summary",
 ]
 
 SAMPLE_ORCHESTRATOR_ROUTE_GEOJSON = {

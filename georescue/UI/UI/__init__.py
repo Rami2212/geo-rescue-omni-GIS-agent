@@ -11,7 +11,7 @@ from .config import (
     SAMPLE_ORCHESTRATOR_ROUTE_GEOJSON,
 )
 from .logging_setup import setup_logging
-from .orchestrator import get_orchestrator_url
+from .orchestrator import get_orchestrator_url, run_agents_backend_stream
 from .state import initialize_session_state
 from .map_layers import load_base_map, render_damage_layers, render_road_network
 from .routing import fetch_sri_lanka_graph, parse_drawn_polygons, calculate_safe_route
@@ -27,6 +27,7 @@ __all__ = [
     "STATUS_TEMPLATE",
     "SAMPLE_ORCHESTRATOR_ROUTE_GEOJSON",
     "setup_logging",
+    "run_agents_backend_stream",
     "get_orchestrator_url",
     "initialize_session_state",
     "load_base_map",

@@ -31,7 +31,7 @@ def load_base_map(center: Tuple[float, float], zoom: int) -> folium.Map:
         export=False,
         draw_options={
             "polyline": False,
-            "rectangle": True,
+            "rectangle": False,
             "polygon": True,
             "circle": False,
             "circlemarker": False,
@@ -56,7 +56,7 @@ def render_damage_layers(
         features.append(
             {
                 "type": "Feature",
-                "properties": {"name": f"Damage Zone {idx}"},
+                "properties": {"name": f"Operator Flood Polygon {idx}"},
                 "geometry": mapping(poly),
             }
         )
@@ -64,12 +64,12 @@ def render_damage_layers(
     geojson = {"type": "FeatureCollection", "features": features}
     folium.GeoJson(
         geojson,
-        name="Damage Zones",
+        name="Operator Flood Polygons",
         style_function=lambda _: {
-            "fillColor": "#ff5f5f",
-            "color": "#ff5f5f",
+            "fillColor": "#1e88e5",
+            "color": "#0d47a1",
             "weight": 2,
-            "fillOpacity": 0.35,
+            "fillOpacity": 0.28,
         },
     ).add_to(base_map)
 

@@ -3,15 +3,15 @@ import folium
 from streamlit_folium import st_folium
 from shapely.geometry import shape
 
-from georescue import (
+from georescue.UI.UI import (
     DEFAULT_CENTER_LAT,
     DEFAULT_CENTER_LON,
     DEFAULT_ZOOM,
-    DEFAULT_GRAPH_RADIUS_KM,
     SAMPLE_DAMAGE_GEOJSON,
     STATUS_TEMPLATE,
     SAMPLE_ORCHESTRATOR_ROUTE_GEOJSON,
     setup_logging,
+    run_agents_backend_stream,
     get_orchestrator_url,
     initialize_session_state,
     load_base_map,
@@ -49,8 +49,10 @@ with st.sidebar:
         help="Set ORCHESTRATOR_URL in secrets or environment for production.",
     )
 
-    show_damage = st.checkbox("Show damage zones", value=True)
-    show_route = st.checkbox("Show safe route", value=True)
+    show_damage = st.checkbox("Show operator flood polygons", value=True)
+    show_flood = st.checkbox("Show AI-detected flooded areas", value=True)
+    show_route = st.checkbox("Show primary safe route", value=True)
+    show_alt_routes = st.checkbox("Show alternative routes", value=True)
     show_roads = st.checkbox("Show road network", value=False)
 
     zoom = st.slider("Map zoom", min_value=9, max_value=16, value=DEFAULT_ZOOM)
@@ -62,6 +64,12 @@ with st.sidebar:
     )
     graph_radius_km = st.slider(
         "Routing graph radius (km)", min_value=4, max_value=30, value=12
+    )
+    realtime_image_dir = st.text_input(
+        "Realtime image folder (optional)",
+        value="",
+        placeholder="Defaults to georescue/ml_serving/data/raw",
+        help="If empty, the agent reads latest image from default georescue folder path.",
     )
 
     st.markdown("---")
@@ -82,8 +90,8 @@ with left_col:
         height=140,
     )
 
-    st.file_uploader(
-        "Optional: upload a satellite image",
+    uploaded_file = st.file_uploader(
+        "Upload a satellite image for flood polygon detection",
         type=["png", "jpg", "jpeg", "tif"],
         accept_multiple_files=False,
     )
@@ -108,19 +116,20 @@ with left_col:
     set_dest = st.button("Set destination from last click")
 
     run_col, mock_col = st.columns(2)
-    run_clicked = run_col.button("Compute Safe Route")
-    mock_clicked = mock_col.button("Load Sample Hazard")
+    local_route_clicked = run_col.button("Compute Safe Route")
+    mock_clicked = mock_col.button("Load Sample Flood Polygon")
+    run_agents_clicked = st.button("Run Flood Agents (HF Qwen + local LoRA + HF Llama 3B)")
     mock_route_clicked = st.button("Load Sample Route (Orchestrator)")
 
     if mock_clicked:
         st.session_state.drawn_polygons = [shape(feature["geometry"]) for feature in SAMPLE_DAMAGE_GEOJSON["features"]]
-        st.info("Loaded sample damage polygon.")
+        st.info("Loaded sample flood polygon.")
 
     if mock_route_clicked:
         st.session_state.route_geojson = SAMPLE_ORCHESTRATOR_ROUTE_GEOJSON
         st.info("Loaded sample route from orchestrator.")
 
-    if run_clicked:
+    if local_route_clicked or run_agents_clicked:
         if user_prompt.strip():
             st.session_state.status_log = STATUS_TEMPLATE
         else:
@@ -129,7 +138,10 @@ with left_col:
     st.markdown("---")
     st.subheader("Route Statistics")
     if st.session_state.route_geojson:
-        stats = st.session_state.route_geojson.get("properties", {})
+        stats = {}
+        features = st.session_state.route_geojson.get("features", [])
+        if features:
+            stats = features[0].get("properties", {}) or {}
         if stats:
             st.write(f"- Distance: {stats.get('distance_km', 'n/a')} km")
             st.write(f"- Travel time: {stats.get('travel_time_min', 'n/a')} min")
@@ -140,9 +152,30 @@ with left_col:
         st.write("Stats will appear after routing.")
 
     with st.expander("Raw GeoJSON Output"):
-        st.write(export_geojson(st.session_state.route_geojson, st.session_state.damage_geojson))
+        st.write(
+            export_geojson(
+                st.session_state.route_geojson,
+                st.session_state.damage_geojson,
+                st.session_state.flood_geojson,
+                st.session_state.blocked_geojson,
+                st.session_state.alternative_routes_geojson,
+                st.session_state.realtime_exports,
+            )
+        )
 
     st.caption("AI agents can be integrated for imagery analysis and hazard detection.")
+
+    if st.session_state.supervisor_plan:
+        st.markdown("---")
+        st.subheader("Supervisor (HF Llama 3B)")
+        st.write(st.session_state.supervisor_plan)
+        if st.session_state.supervisor_summary:
+            st.caption(st.session_state.supervisor_summary)
+
+    if st.session_state.vision_result:
+        st.subheader("Vision Detection")
+        st.write(f"Severity: {st.session_state.vision_result.get('severity', 'unknown')}")
+        st.write(st.session_state.vision_result.get("findings", ""))
 
 with right_col:
     st.subheader("Operational Map")
@@ -161,7 +194,19 @@ with right_col:
     if damage_geojson:
         st.session_state.damage_geojson = damage_geojson
 
-    if run_clicked:
+    if show_flood and st.session_state.flood_geojson:
+        folium.GeoJson(
+            st.session_state.flood_geojson,
+            name="Detected Flooded Areas",
+            style_function=lambda _: {
+                "fillColor": "#ff5252",
+                "color": "#b71c1c",
+                "weight": 2,
+                "fillOpacity": 0.35,
+            },
+        ).add_to(base_map)
+
+    if local_route_clicked:
         route_geojson, route_line, stats, error = calculate_safe_route(
             graph,
             (st.session_state.start_lat, st.session_state.start_lon),
@@ -172,15 +217,28 @@ with right_col:
             st.warning(error)
             st.session_state.route_geojson = None
         else:
-            route_geojson["properties"] = stats
+            for feature in route_geojson.get("features", []):
+                feature.setdefault("properties", {}).update(stats)
             st.session_state.route_geojson = route_geojson
 
     if show_route and st.session_state.route_geojson:
         folium.GeoJson(
             st.session_state.route_geojson,
-            name="Safe Route",
+            name="Primary Safe Route",
             style_function=lambda _: {"color": "#3ddc84", "weight": 4},
         ).add_to(base_map)
+
+    if show_alt_routes and st.session_state.alternative_routes_geojson:
+        for idx, alt_route in enumerate(st.session_state.alternative_routes_geojson, start=1):
+            folium.GeoJson(
+                alt_route,
+                name=f"Alternative Route {idx}",
+                style_function=lambda _: {
+                    "color": "#ffca28",
+                    "weight": 4,
+                    "opacity": 0.9,
+                },
+            ).add_to(base_map)
 
     folium.LayerControl().add_to(base_map)
     map_output = st_folium(base_map, use_container_width=True, height=560)
@@ -203,3 +261,44 @@ with right_col:
 
     if orchestrator_url:
         st.caption(f"Planned API target: {orchestrator_url}")
+
+
+if run_agents_clicked:
+    uploaded_bytes = uploaded_file.read() if uploaded_file else None
+    st.session_state.status_log = []
+    final_payload = None
+
+    with st.status("Running flood response agents...", expanded=True):
+        for event in run_agents_backend_stream(
+            mission=user_prompt,
+            disaster_type="flood",
+            start=(st.session_state.start_lat, st.session_state.start_lon),
+            dest=(st.session_state.dest_lat, st.session_state.dest_lon),
+            uploaded_image_bytes=uploaded_bytes,
+            realtime_image_dir=realtime_image_dir or None,
+            map_center=map_center,
+            graph_radius_km=float(graph_radius_km),
+        ):
+            log_line = f"{event.get('agent', 'Agent')}: {event.get('message', '')}"
+            st.write(log_line)
+            st.session_state.status_log.append(log_line)
+            if event.get("status") == "complete":
+                final_payload = event.get("data") or {}
+
+    if final_payload:
+        st.session_state.flood_geojson = final_payload.get("flood_geojson")
+        st.session_state.blocked_geojson = final_payload.get("blocked_geojson")
+        st.session_state.route_geojson = final_payload.get("primary_route_geojson")
+        st.session_state.alternative_routes_geojson = final_payload.get("alternative_routes_geojson", [])
+        st.session_state.vision_result = final_payload.get("vision_result")
+        st.session_state.supervisor_plan = final_payload.get("supervisor_plan", "")
+        st.session_state.supervisor_summary = final_payload.get("supervisor_summary", "")
+        st.session_state.realtime_exports = final_payload.get("realtime_exports")
+
+        stats = final_payload.get("route_stats", {})
+        if st.session_state.route_geojson and stats:
+            for feat in st.session_state.route_geojson.get("features", []):
+                feat.setdefault("properties", {}).update(stats)
+
+        st.success("Flooded areas and alternative routes updated on map.")
+        st.rerun()

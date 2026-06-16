@@ -123,3 +123,4 @@ def calculate_safe_route(
 
     return route_geojson, route_line, stats, None
 
+

@@ -28,3 +28,4 @@ The UI currently uses mock GeoJSON outputs. When the orchestrator is ready, wire
 ## Deployment Note
 Hugging Face Spaces works out-of-the-box with `app.py` as the entry file. Add `ORCHESTRATOR_URL` as a Space secret if the backend is remote.
 
+
