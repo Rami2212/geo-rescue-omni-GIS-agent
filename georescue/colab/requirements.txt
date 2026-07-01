@@ -1,0 +1,11 @@
+torch
+torchvision
+torchaudio
+transformers
+accelerate
+peft
+qwen-vl-utils
+pillow
+numpy
+pandas
+bitsandbytes>=0.46.1
